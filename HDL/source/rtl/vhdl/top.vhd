@@ -103,6 +103,20 @@ architecture rtl of top is
     );
   end component;
   
+  component reg is
+	generic(
+		WIDTH    : positive := 1;
+		RST_INIT : integer := 0
+	);
+	port(
+		i_clk  : in  std_logic;
+		in_rst : in  std_logic;
+		i_d    : in  std_logic_vector(WIDTH-1 downto 0);
+		o_q    : out std_logic_vector(WIDTH-1 downto 0)
+	);
+	
+end component reg;
+  
   component ODDR2
   generic(
    DDR_ALIGNMENT : string := "NONE";
@@ -127,10 +141,12 @@ architecture rtl of top is
   constant GRAPH_MEM_ADDR_WIDTH : natural := MEM_ADDR_WIDTH + 6;-- graphics addres is scales with minumum char size 8*8 log2(64) = 6
   
   -- text
+  
   signal message_lenght      : std_logic_vector(MEM_ADDR_WIDTH-1 downto 0);
   signal graphics_lenght     : std_logic_vector(GRAPH_MEM_ADDR_WIDTH-1 downto 0);
-  
   signal direct_mode         : std_logic;
+  signal next_text_addr		  : std_logic_vector(MEM_ADDR_WIDTH-1 downto 0);
+  signal current_text_addr		  : std_logic_vector(MEM_ADDR_WIDTH-1 downto 0);
   --
   signal font_size           : std_logic_vector(3 downto 0);
   signal show_frame          : std_logic;
@@ -246,6 +262,21 @@ begin
     blue_o             => blue_o     
   );
   
+	next_text_addr<=current_text_addr+1 when current_text_addr<1200-1
+			else conv_std_logic_vector(0,MEM_ADDR_WIDTH);
+			
+	txt_reg: reg
+		generic map(
+			WIDTH => MEM_ADDR_WIDTH,
+			RST_INIT =>0
+		)
+		port map(
+		i_clk  =>pix_clock_s,
+		in_rst =>vga_rst_n_s,
+		i_d    =>next_text_addr,
+		o_q    =>current_text_addr
+	);
+  
   -- na osnovu signala iz vga_top modula dir_pixel_column i dir_pixel_row realizovati logiku koja genereise
   --dir_red
   --dir_green
@@ -269,9 +300,16 @@ begin
   --char_address
   --char_value
   --char_we
-  
-  --
-  --
+  --ispis mog cenjenog imena u godnjem levom uglu ekrana
+  char_we<='1';
+  char_address<=current_text_addr;
+  char_value<= x"D" when char_address=conv_std_logic_vector(1,MEM_ADDR_WIDTH) else
+					x"9" when char_address=conv_std_logic_vector(2,MEM_ADDR_WIDTH) else
+					x"C" when char_address=conv_std_logic_vector(3,MEM_ADDR_WIDTH) else
+					x"1" when char_address=conv_std_logic_vector(1,MEM_ADDR_WIDTH) else
+					x"E" when char_address=conv_std_logic_vector(1,MEM_ADDR_WIDTH) else
+					x"20";
+					
   
   -- koristeci signale realizovati logiku koja pise po GRAPH_MEM
   --pixel_address
