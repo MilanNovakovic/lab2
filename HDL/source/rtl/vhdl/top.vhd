@@ -334,7 +334,8 @@ begin
   -- koristeci signale realizovati logiku koja pise po GRAPH_MEM
   --pixel_address
   --pixel_value
-  --pixel_we
+  --pixel_w
+  --
   pixel_we<='1';
   pixel_address<=current_pix_addr;
   pixel_value <=	x"FFFFFFFF" when pixel_address=4410 else
