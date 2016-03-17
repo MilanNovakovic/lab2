@@ -32,7 +32,10 @@ entity top is
     sync_o         : out std_logic;
     red_o          : out std_logic_vector(7 downto 0);
     green_o        : out std_logic_vector(7 downto 0);
-    blue_o         : out std_logic_vector(7 downto 0)
+    blue_o         : out std_logic_vector(7 downto 0);
+	 display_mode_i	 : in std_logic_vector (1 downto 0);
+	 direct_mode_i  : in std_logic
+	 
    );
 end top;
 
@@ -147,6 +150,10 @@ end component reg;
   signal direct_mode         : std_logic;
   signal next_text_addr		  : std_logic_vector(MEM_ADDR_WIDTH-1 downto 0);
   signal current_text_addr		  : std_logic_vector(MEM_ADDR_WIDTH-1 downto 0);
+  --graphic
+  signal next_pix_addr		  : std_logic_vector(GRAPH_MEM_ADDR_WIDTH-1 downto 0);
+  signal current_pix_addr		  : std_logic_vector(GRAPH_MEM_ADDR_WIDTH-1 downto 0);
+  
   --
   signal font_size           : std_logic_vector(3 downto 0);
   signal show_frame          : std_logic;
@@ -184,8 +191,8 @@ begin
   graphics_lenght <= conv_std_logic_vector(MEM_SIZE*8*8, GRAPH_MEM_ADDR_WIDTH);
   
   -- removed to inputs pin
-  direct_mode <= '1';
-  display_mode     <= "10";  -- 01 - text mode, 10 - graphics mode, 11 - text & graphics
+  direct_mode <= direct_mode_i;
+  display_mode     <= display_mode_i;  -- 01 - text mode, 10 - graphics mode, 11 - text & graphics
   
   font_size        <= x"1";
   show_frame       <= '1';
@@ -276,7 +283,20 @@ begin
 		i_d    =>next_text_addr,
 		o_q    =>current_text_addr
 	);
-  
+	
+	graphic_reg: reg
+		generic map(
+			WIDTH => GRAPH_MEM_ADDR_WIDTH,
+			RST_INIT =>0
+		)
+		port map(
+		i_clk  =>pix_clock_s,
+		in_rst =>vga_rst_n_s,
+		i_d    =>next_pix_addr,
+		o_q    =>current_pix_addr
+	);
+  next_pix_addr<=current_pix_addr+1 when current_pix_addr < 9600-1
+						else conv_std_logic_vector(0,GRAPH_MEM_ADDR_WIDTH);
   -- na osnovu signala iz vga_top modula dir_pixel_column i dir_pixel_row realizovati logiku koja genereise
   --dir_red
   --dir_green
@@ -303,18 +323,49 @@ begin
   --ispis mog cenjenog imena u godnjem levom uglu ekrana
   char_we<='1';
   char_address<=current_text_addr;
-  char_value<= x"D" when char_address=conv_std_logic_vector(1,MEM_ADDR_WIDTH) else
-					x"9" when char_address=conv_std_logic_vector(2,MEM_ADDR_WIDTH) else
-					x"C" when char_address=conv_std_logic_vector(3,MEM_ADDR_WIDTH) else
-					x"1" when char_address=conv_std_logic_vector(1,MEM_ADDR_WIDTH) else
-					x"E" when char_address=conv_std_logic_vector(1,MEM_ADDR_WIDTH) else
-					x"20";
+  with char_address select char_value<= o"15" when conv_std_logic_vector(48,MEM_ADDR_WIDTH),
+													 o"11" when conv_std_logic_vector(49,MEM_ADDR_WIDTH),
+													 o"14" when conv_std_logic_vector(50,MEM_ADDR_WIDTH),-- else
+													 o"01" when conv_std_logic_vector(51,MEM_ADDR_WIDTH),-- else
+													 o"16" when conv_std_logic_vector(52,MEM_ADDR_WIDTH),-- else
+													 o"40" when others;
 					
   
   -- koristeci signale realizovati logiku koja pise po GRAPH_MEM
   --pixel_address
   --pixel_value
   --pixel_we
-  
-  
+  pixel_we<='1';
+  pixel_address<=current_pix_addr;
+  pixel_value <=	x"FFFFFFFF" when pixel_address=4410 else
+						x"FFFFFFFF" when pixel_address=4430 else
+						x"FFFFFFFF" when pixel_address=4450 else
+						x"FFFFFFFF" when pixel_address=4470 else
+						x"FFFFFFFF" when pixel_address=4490 else
+						x"FFFFFFFF" when pixel_address=4510 else
+						x"FFFFFFFF" when pixel_address=4530 else
+						x"FFFFFFFF" when pixel_address=4550 else
+						x"FFFFFFFF" when pixel_address=4570 else
+						x"FFFFFFFF" when pixel_address=4590 else
+						x"FFFFFFFF" when pixel_address=4610 else
+						x"FFFFFFFF" when pixel_address=4630 else
+						x"FFFFFFFF" when pixel_address=4650 else
+						x"FFFFFFFF" when pixel_address=4670 else
+						x"FFFFFFFF" when pixel_address=4690 else
+						x"FFFFFFFF" when pixel_address=4710 else
+						x"FFFFFFFF" when pixel_address=4730 else
+						x"FFFFFFFF" when pixel_address=4750 else
+						x"FFFFFFFF" when pixel_address=4770 else
+						x"FFFFFFFF" when pixel_address=4790 else
+						x"FFFFFFFF" when pixel_address=4810 else
+						x"FFFFFFFF" when pixel_address=4830 else
+						x"FFFFFFFF" when pixel_address=4850 else
+						x"FFFFFFFF" when pixel_address=4870 else
+						x"FFFFFFFF" when pixel_address=4890 else
+						x"FFFFFFFF" when pixel_address=4910 else
+						x"FFFFFFFF" when pixel_address=4930 else
+						x"FFFFFFFF" when pixel_address=4950 else
+						x"FFFFFFFF" when pixel_address=4970 else
+						x"FFFFFFFF" when pixel_address=4990 else
+						x"00000000";
 end rtl;
